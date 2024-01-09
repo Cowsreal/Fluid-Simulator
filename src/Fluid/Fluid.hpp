@@ -35,10 +35,11 @@ private:
     glm::vec2 m_minBoundary;
     glm::vec2 m_maxBoundary;
 
-    float m_Dt = 1 / 120.0f;
+    float m_Dt = 1 / 144.0f;
     float m_SmoothingRadius = 30.0f;
     float m_Mass = 1.0f;
     float m_K = 0.1f;
+    float m_cellSize = 0.75f * m_SmoothingRadius;
 
     std::unordered_map<size_t, std::vector<Particle*>> m_HashTable;
 
