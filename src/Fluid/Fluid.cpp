@@ -2,6 +2,19 @@
 #include <iostream>
 #include <cmath>
 
+glm::vec3 valueToColor(float value) {
+    if (value < 0.0f || value > 1.0f) {
+        std::cerr << "Value must be between 0 and 1." << std::endl;
+        return glm::vec3(0.0f); // Return black in case of error
+    }
+
+    float red = value;
+    float blue = 1.0f - red;
+    float green = 0.0f;
+
+    return glm::vec3(red, green, blue);
+}
+
 float Poly6(float r, float h)
 {
     if (r > h)
@@ -25,8 +38,22 @@ float gradPoly6(float r, float h)
     else
     {
         float volume = PI * pow(h, 9);
-        float value = std::max(0.0f, h * h - r * r);
-        return -945.0f / (32.0f * volume) * pow(value, 2);
+        float value = h * h - r * r;
+        return -945.0f / (32.0f * volume) * pow(value, 2) * pow(10, 7);
+    }
+}
+
+float lapPoly6(float r, float h)
+{
+    if (r > h)
+    {
+        return 0.0f;
+    }
+    else
+    {
+        float volume = PI * pow(h, 9);
+        float value = h * h - r * r;
+        return 945.0f / (32.0f * volume) * (h * h - 3 * r * r) * pow(10, 7);
     }
 }
 
@@ -74,36 +101,59 @@ Fluid::Fluid(unsigned int numParticles, unsigned int initCols)
 
 void Fluid::Update()
 {
+    m_maxVelocity = 0.0f;
+    UpdateHashTable();
+    CalculateDensity();
+    UpdateAcceleration();
+
     // Update positions
     for(unsigned int i = 0; i < m_NumParticles; i++)
     {
-        m_Particles[i].Pos += m_Particles[i].Vel * m_Dt;
         m_Particles[i].Vel += m_Particles[i].Acc * m_Dt;
+        m_Particles[i].Pos += m_Particles[i].Vel * m_Dt;
+
+        m_maxVelocity = std::max(m_maxVelocity, glm::length(m_Particles[i].Vel));
+
         if(m_Particles[i].Pos.x < m_minBoundary.x)
         {
             m_Particles[i].Pos.x = m_minBoundary.x;
-            m_Particles[i].Vel.x *= -1 * 0.2;
+            m_Particles[i].Vel.x *= -1 * 0.5;
         }
         if(m_Particles[i].Pos.x > m_maxBoundary.x)
         {
             m_Particles[i].Pos.x = m_maxBoundary.x;
-            m_Particles[i].Vel.x *= -1 * 0.2;
+            m_Particles[i].Vel.x *= -1 * 0.5;
         }
         if(m_Particles[i].Pos.y < m_minBoundary.y)
         {
             m_Particles[i].Pos.y = m_minBoundary.y;
-            m_Particles[i].Vel.y *= -1 * 0.2;
+            m_Particles[i].Vel.y *= -1 * 0.5;
         }
         if(m_Particles[i].Pos.y > m_maxBoundary.y)
         {
             m_Particles[i].Pos.y = m_maxBoundary.y;
-            m_Particles[i].Vel.y *= -1 * 0.2;
+            m_Particles[i].Vel.y *= -1 * 0.5;
         }
     }
-    UpdateHashTable();
-    CalculateDensity();
-    UpdateAcceleration();
+    UpdateColor();
     m_Circle->UpdateInstanceData(&m_Particles);
+}
+
+void Fluid::PrintVelocities()
+{
+    for(unsigned int i = 0; i < m_NumParticles; i++)
+    {
+        std::cout << glm::length(m_Particles[i].Vel) << ", ";
+    }
+}
+
+void Fluid::UpdateColor()
+{
+    for(unsigned int i = 0; i < m_NumParticles; i++)
+    {
+        float value = glm::length(m_Particles[i].Vel) / m_maxVelocity;
+        m_Particles[i].Color = valueToColor(value);
+    }
 }
 
 void Fluid::UpdateAcceleration()
@@ -159,12 +209,15 @@ void Fluid::UpdateAcceleration()
                     {
                         // Direction vector from particle to neighbor
                         glm::vec3 dir = glm::normalize(m_Particles[i].Pos - m_HashTable[hashVal][k]->Pos);
-                        float dist = glm::length(m_Particles[i].Pos - m_HashTable[hashVal][k]->Pos);
-                        //force += - 500.0f / (dist * dist) * dir;
+                        //force += - 200.0f / (dist * dist) * dir;
+
+                        //Pressure
+                        force += - 1.0f * m_Mass * ((pressure + currPressure) / (2 * currDensity)) * gradPoly6(r, m_SmoothingRadius) * 500 * dir;
+                        //std::cout << - 1.0f * m_Mass * ((pressure + currPressure) / (2 * currDensity)) * gradPoly6(r, m_SmoothingRadius) << std::endl;
                         
-                        force += - 1.0f * m_Mass * ((pressure + currPressure) / (2 * currDensity)) * gradPoly6(r, m_SmoothingRadius) * dir;
+                        // Viscosity
+                        force += m_Viscosity * m_Mass * (m_Particles[i].Vel - m_HashTable[hashVal][k]->Vel) / currDensity * lapPoly6(r, m_SmoothingRadius);
                     }
-                    // Viscosity
                 }
             }
         }
@@ -211,7 +264,7 @@ void Fluid::CalculateDensity()
                 for(unsigned int k = 0; k < m_HashTable[hashVal].size(); k++)
                 {
                     float r = glm::length(m_Particles[i].Pos - m_HashTable[hashVal][k]->Pos);
-                    density += m_Mass * Poly6(r, m_SmoothingRadius);
+                    density += m_Mass * Poly6(r, m_SmoothingRadius) + 0.0001f;
                 } 
             }
         }

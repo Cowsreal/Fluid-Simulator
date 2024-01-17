@@ -17,6 +17,7 @@ set(SOURCES
     src/VertexArray.cpp
     src/VertexBuffer.cpp
     src/FrameBuffer.cpp
+    src/ComputeShader.cpp
     src/GlobalFunctions.cpp
     src/Fluid/Fluid.cpp
     src/vendor/imgui/imgui.cpp

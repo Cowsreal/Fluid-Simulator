@@ -13,6 +13,8 @@ double Poly6(double r, double h);
 
 float gradPoly6(float r, float h);
 
+float lapPoly6(float r, float h);
+
 size_t Hash(glm::vec3 pos);
 
 class Fluid
@@ -24,6 +26,7 @@ public:
 
     void BindCircle(Circle* circle) { m_Circle = circle; }
     void Update();
+    void PrintVelocities();
 
 private:
     std::vector<Particle> m_Particles;
@@ -38,11 +41,14 @@ private:
     float m_Dt = 1 / 144.0f;
     float m_SmoothingRadius = 30.0f;
     float m_Mass = 1.0f;
-    float m_K = 0.1f;
+    float m_K = 0.5f;
     float m_cellSize = 0.75f * m_SmoothingRadius;
+    float m_maxVelocity = 0.0f;
+    float m_Viscosity = 0.5f;
 
     std::unordered_map<size_t, std::vector<Particle*>> m_HashTable;
 
+    void UpdateColor();
     void UpdateAcceleration();
     void CalculateDensity();
     void GetProperty(Particle* p);

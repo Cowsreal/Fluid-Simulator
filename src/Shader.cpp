@@ -13,6 +13,7 @@ Shader::Shader(const std::string& filename)
     m_RendererID = CreateShader(source.vertexSource, source.fragmentSource); //create a shader
     GLCall(glUseProgram(m_RendererID));
 }
+
 Shader::~Shader()
 {
     GLCall(glDeleteProgram(m_RendererID)); //delete the shader

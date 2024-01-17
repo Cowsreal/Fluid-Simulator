@@ -62,7 +62,7 @@ int main()
         return -1;
 
     glfwWindowHint(GLFW_SAMPLES, 4);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);	//set the major version of OpenGL to 3
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);	//set the major version of OpenGL to 3
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);	//set the minor version of OpenGL to 3
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);	//set the OpenGL profile to core
 
@@ -134,7 +134,7 @@ int main()
         Line right(glm::vec3(boxDims[1], boxDims[2], 0), glm::vec3(boxDims[1], boxDims[3], 0));        
         std::vector<Line> boxLines = {top, bottom, left, right};
 
-        Fluid fluid(100, 30);
+        Fluid fluid(2000, 50);
 
         Circle circle(fluid.GetParticles());
 
@@ -172,8 +172,12 @@ int main()
                 top.UpdateVertices(glm::vec3(boxDims[0], boxDims[3], 0), glm::vec3(boxDims[1], boxDims[3], 0));
                 bottom.UpdateVertices(glm::vec3(boxDims[0], boxDims[2], 0), glm::vec3(boxDims[1], boxDims[2], 0));
             }
+            if(ImGui::Button("Print Velocities"))
+            {
+                fluid.PrintVelocities();
+            }
 
-            ImGui::End(); 
+            ImGui::End();
 
             if(drawCoordinateAxis)
             {
@@ -199,6 +203,7 @@ int main()
                 boxLines[i].Draw();
             }
             fluid.Update();
+
 
             {
                 shader3.Bind();
