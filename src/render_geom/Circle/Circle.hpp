@@ -53,5 +53,5 @@ private:
 	unsigned int m_NumInstances;
 	std::vector<float> m_Vertices;
 	std::vector<unsigned int> m_Indices;
-	unsigned int m_numCols = 50;
+	unsigned int m_numCols = 10;
 };

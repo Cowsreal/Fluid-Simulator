@@ -134,7 +134,7 @@ int main()
         Line right(glm::vec3(boxDims[1], boxDims[2], 0), glm::vec3(boxDims[1], boxDims[3], 0));        
         std::vector<Line> boxLines = {top, bottom, left, right};
 
-        Fluid fluid(2000, 50);
+        Fluid fluid(500, 50);
 
         Circle circle(fluid.GetParticles());
 

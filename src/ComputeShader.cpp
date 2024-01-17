@@ -45,15 +45,13 @@ unsigned int ComputeShader::CreateAndCompileShader(const std::string& ComputeSha
     int result;
     GLCall(glGetProgramiv(program, GL_LINK_STATUS, &result));
 
-    if (result == GL_FALSE)
+    if (!result)
     {
-        GLsizei length = 0;
-        char* message = (char*)alloca(1024 * sizeof(char));
-        GLCall(glGetProgramInfoLog(program, 1024, &length, message));
+        char error[1024];
+        GLCall(glGetProgramInfoLog(program, 1024, NULL, error));
         std::cout << "Failed to link program." << std::endl;
-        std::cout << message << std::endl;
+        std::cout << error << std::endl;
         GLCall(glDeleteProgram(program));
-        return 0;
     }
 
     GLCall(glValidateProgram(program));

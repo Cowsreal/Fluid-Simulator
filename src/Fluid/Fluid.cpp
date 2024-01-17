@@ -223,10 +223,9 @@ void Fluid::UpdateAcceleration()
         }
 
         // Gravity
-        force += -1.0f * m_Mass * glm::vec3(0.0f, 200.0f, 0.0f);
+        force += -1.0f * m_Mass * glm::vec3(0.0f, m_G, 0.0f);
 
         // Update acceleration
-
         m_Particles[i].Acc = force / m_Mass;
     }
 }
