@@ -134,7 +134,7 @@ int main()
         Line right(glm::vec3(boxDims[1], boxDims[2], 0), glm::vec3(boxDims[1], boxDims[3], 0));        
         std::vector<Line> boxLines = {top, bottom, left, right};
 
-        Fluid fluid(500, 50);
+        Fluid fluid(2000, 50);
 
         Circle circle(fluid.GetParticles());
 
@@ -176,8 +176,39 @@ int main()
             {
                 fluid.PrintVelocities();
             }
-
             ImGui::End();
+
+            ImGui::Begin("Fluid Settings:");
+            if(ImGui::SliderFloat("Smoothing Radius", fluid.GetSmoothingRadius(), 0.0f, 100.0f))
+            {
+                fluid.Setm_cellSize(0.9f * *fluid.GetSmoothingRadius());
+            }
+            if(ImGui::SliderFloat("Mass", fluid.GetMass(), 0.0f, 15.0f))
+            {
+                fluid.Setm_Mass(*fluid.GetMass());
+            }
+            if(ImGui::SliderFloat("K", fluid.Getm_K(), 0.0f, 15.0f))
+            {
+                fluid.Setm_K(*fluid.Getm_K());
+            }
+            if(ImGui::SliderFloat("Viscosity", fluid.Getm_Viscosity(), 0.0f, 15.0f))
+            {
+                fluid.Setm_Viscosity(*fluid.Getm_Viscosity());
+            }
+            if(ImGui::SliderFloat("G", fluid.Getm_G(), 0.0f, 500.0f))
+            {
+                fluid.Setm_G(*fluid.Getm_G());
+            }
+            if(ImGui::SliderFloat("Rest Density", fluid.Getm_RestDensity(), 0.0f, 0.5f))
+            {
+                fluid.Setm_RestDensity(*fluid.Getm_RestDensity());
+            }
+            if(ImGui::SliderFloat("Wall Damping", fluid.Getm_WallDamping(), 0.0f, 1.0f))
+            {
+                fluid.Setm_WallDamping(*fluid.Getm_WallDamping());
+            }
+            ImGui::End();
+            
 
             if(drawCoordinateAxis)
             {
@@ -203,7 +234,6 @@ int main()
                 boxLines[i].Draw();
             }
             fluid.Update();
-
 
             {
                 shader3.Bind();

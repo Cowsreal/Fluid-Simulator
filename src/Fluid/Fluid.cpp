@@ -29,6 +29,7 @@ float Poly6(float r, float h)
     }
 }
 
+
 float gradPoly6(float r, float h)
 {
     if (r > h)
@@ -54,6 +55,48 @@ float lapPoly6(float r, float h)
         float volume = PI * pow(h, 9);
         float value = h * h - r * r;
         return 945.0f / (32.0f * volume) * (h * h - 3 * r * r) * pow(10, 7);
+    }
+}
+
+float spiky(float r, float h)
+{
+    if (r > h)
+    {
+        return 0.0f;
+    }
+    else
+    {
+        float volume = PI * pow(h, 6);
+        float value = h - r;
+        return 15.0f / (volume) * pow(value, 3);
+    }
+}
+
+float gradSpiky(float r, float h)
+{
+    if (r > h)
+    {
+        return 0.0f;
+    }
+    else
+    {
+        float volume = PI * pow(h, 6) * r;
+        float value = h - r;
+        return -45.0f / (volume) * pow(value, 2);
+    }
+}
+
+float lapViscosity(float r, float h)
+{
+    if (r > h)
+    {
+        return 0.0f;
+    }
+    else
+    {
+        float volume = PI * pow(h, 3);
+        float value = - pow(r, 3) / (2 * pow(h, 3)) + pow(r, 2) / (pow(h, 2)) + h / (2 * r) - 1;
+        return 15.0f / (2.0f * volume) * value;
     }
 }
 
@@ -117,22 +160,22 @@ void Fluid::Update()
         if(m_Particles[i].Pos.x < m_minBoundary.x)
         {
             m_Particles[i].Pos.x = m_minBoundary.x;
-            m_Particles[i].Vel.x *= -1 * 0.5;
+            m_Particles[i].Vel.x *= -m_WallDamping;
         }
         if(m_Particles[i].Pos.x > m_maxBoundary.x)
         {
             m_Particles[i].Pos.x = m_maxBoundary.x;
-            m_Particles[i].Vel.x *= -1 * 0.5;
+            m_Particles[i].Vel.x *= -m_WallDamping;
         }
         if(m_Particles[i].Pos.y < m_minBoundary.y)
         {
             m_Particles[i].Pos.y = m_minBoundary.y;
-            m_Particles[i].Vel.y *= -1 * 0.5;
+            m_Particles[i].Vel.y *= -m_WallDamping;
         }
         if(m_Particles[i].Pos.y > m_maxBoundary.y)
         {
             m_Particles[i].Pos.y = m_maxBoundary.y;
-            m_Particles[i].Vel.y *= -1 * 0.5;
+            m_Particles[i].Vel.y *= -m_WallDamping;
         }
     }
     UpdateColor();
@@ -171,7 +214,7 @@ void Fluid::UpdateAcceleration()
         int Y0 = floor((m_Particles[i].Pos.y - m_minBoundary.y) / m_cellSize);
 
         float density = m_Particles[i].Density;
-        float pressure = density * m_K;
+        float pressure = m_K * (density - m_RestDensity);
 
         for(int j = 0; j < 9; j++)
         {
