@@ -4,13 +4,13 @@
 
 glm::vec3 valueToColor(float value) {
     if (value < 0.0f || value > 1.0f) {
-        std::cerr << "Value must be between 0 and 1." << std::endl;
+        //std::cerr << "Value must be between 0 and 1." << std::endl;
         return glm::vec3(0.0f); // Return black in case of error
     }
 
-    float red = value;
-    float blue = 1.0f - red;
-    float green = 0.0f;
+    float green = 0.5f;
+    float blue = value;
+    float red = 1.0f - blue;
 
     return glm::vec3(red, green, blue);
 }
@@ -82,6 +82,7 @@ float gradSpiky(float r, float h)
     {
         float volume = PI * pow(h, 6) * r;
         float value = h - r;
+        //std::cout << 45.0f / (volume) * pow(value, 2) << std::endl;
         return -45.0f / (volume) * pow(value, 2);
     }
 }
@@ -94,9 +95,11 @@ float lapViscosity(float r, float h)
     }
     else
     {
-        float volume = PI * pow(h, 3);
-        float value = - pow(r, 3) / (2 * pow(h, 3)) + pow(r, 2) / (pow(h, 2)) + h / (2 * r) - 1;
-        return 15.0f / (2.0f * volume) * value;
+        //float volume = PI * pow(h, 3);
+        //float value = - pow(r, 3) / (2 * pow(h, 3)) + pow(r, 2) / (pow(h, 2)) + h / (2 * r) - 1;
+        //return 15.0f / (2.0f * volume) * value;
+        float factor = 45.0f / (PI * pow(h, 5));
+        return factor * (h - r);
     }
 }
 
@@ -116,7 +119,7 @@ Fluid::Fluid(unsigned int numParticles, unsigned int initCols)
 
     float spacing = 10.0f;
     float x = - spacing * (m_InitCols / 2);
-    float y = 0.0f;
+    float y = - 300.0f;
     float z = 0.0f;
 
     for (unsigned int i = 0; i < m_NumParticles; i++)
@@ -132,19 +135,21 @@ Fluid::Fluid(unsigned int numParticles, unsigned int initCols)
         m_Particles[i].Color = glm::vec3(0.0f, 0.0f, 0.0f);
         m_Particles[i].Density = 0.0f;
         m_Particles[i].Pressure = 0.0f;
-        m_Particles[i].HashVal = 0;
         m_Particles[i].Radius = 5.0f;
 
         x += spacing;
     }
 
-    m_minBoundary = glm::vec2(-500.0f, -500.0f);
-    m_maxBoundary = glm::vec2(500.0f, 500.0f);
+    m_minBoundary = glm::vec3(-500.0f, -500.0f, 0.0f);
+    m_maxBoundary = glm::vec3(500.0f, 500.0f, 0.0f);
 }
 
 void Fluid::Update()
 {
     m_maxVelocity = 0.0f;
+    m_minVelocity = 0.0f;
+    m_maxDensity = 0.0f;
+    m_minDensity = 0.0f;
     UpdateHashTable();
     CalculateDensity();
     UpdateAcceleration();
@@ -156,23 +161,27 @@ void Fluid::Update()
         m_Particles[i].Pos += m_Particles[i].Vel * m_Dt;
 
         m_maxVelocity = std::max(m_maxVelocity, glm::length(m_Particles[i].Vel));
+        m_minVelocity = std::min(m_minVelocity, glm::length(m_Particles[i].Vel));
 
-        if(m_Particles[i].Pos.x < m_minBoundary.x)
+        m_maxDensity = std::max(m_maxDensity, m_Particles[i].Density);
+        m_minDensity = std::min(m_minDensity, m_Particles[i].Density);
+
+        if(m_Particles[i].Pos.x <= m_minBoundary.x)
         {
             m_Particles[i].Pos.x = m_minBoundary.x;
             m_Particles[i].Vel.x *= -m_WallDamping;
         }
-        if(m_Particles[i].Pos.x > m_maxBoundary.x)
+        if(m_Particles[i].Pos.x >= m_maxBoundary.x)
         {
             m_Particles[i].Pos.x = m_maxBoundary.x;
             m_Particles[i].Vel.x *= -m_WallDamping;
         }
-        if(m_Particles[i].Pos.y < m_minBoundary.y)
+        if(m_Particles[i].Pos.y <= m_minBoundary.y)
         {
             m_Particles[i].Pos.y = m_minBoundary.y;
             m_Particles[i].Vel.y *= -m_WallDamping;
         }
-        if(m_Particles[i].Pos.y > m_maxBoundary.y)
+        if(m_Particles[i].Pos.y >= m_maxBoundary.y)
         {
             m_Particles[i].Pos.y = m_maxBoundary.y;
             m_Particles[i].Vel.y *= -m_WallDamping;
@@ -192,11 +201,29 @@ void Fluid::PrintVelocities()
 
 void Fluid::UpdateColor()
 {
+    
     for(unsigned int i = 0; i < m_NumParticles; i++)
     {
-        float value = glm::length(m_Particles[i].Vel) / m_maxVelocity;
+        float value = (glm::length(m_Particles[i].Vel) - m_minVelocity) / (m_maxVelocity - m_minVelocity);
         m_Particles[i].Color = valueToColor(value);
     }
+
+    /*
+    for(unsigned int i = 0; i < m_NumParticles; i++)
+    {
+        float value = (m_Particles[i].Density - m_minDensity) / (m_maxDensity - m_minDensity);
+        m_Particles[i].Color = valueToColor(value);
+    }
+    */
+    /*for(auto it : m_HashTable)
+    {
+        int hashVal = it.first;
+        float value = hashVal / 1000.0f;
+        for(unsigned int i = 0; i < it.second.size(); i++)
+        {
+            it.second[i]->Color = valueToColor(value);
+        }
+    }*/
 }
 
 void Fluid::UpdateAcceleration()
@@ -210,11 +237,12 @@ void Fluid::UpdateAcceleration()
 
         // Loop over 3x3 grid of cells around particle
 
-        int X0 = floor((m_Particles[i].Pos.x - m_minBoundary.x) / m_cellSize);
-        int Y0 = floor((m_Particles[i].Pos.y - m_minBoundary.y) / m_cellSize);
+        int X0 = (m_Particles[i].Pos.x - m_minBoundary.x) / m_cellSize;
+        int Y0 = (m_Particles[i].Pos.y - m_minBoundary.y) / m_cellSize;
 
         float density = m_Particles[i].Density;
         float pressure = m_K * (density - m_RestDensity);
+        //std::cout << pressure << std::endl;
 
         for(int j = 0; j < 9; j++)
         {
@@ -225,12 +253,7 @@ void Fluid::UpdateAcceleration()
 
             // Get hash value of current cell
 
-            if(X < 0 || X > floor((m_maxBoundary.x - m_minBoundary.x) / m_cellSize) || Y < 0 || Y > floor((m_maxBoundary.y - m_minBoundary.y) / m_cellSize))
-            {
-                continue;
-            }
-
-            size_t hashVal = Hash(X, Y, floor((m_maxBoundary.x - m_minBoundary.x) / m_cellSize) * floor((m_maxBoundary.y - m_minBoundary.y) / m_cellSize));
+            size_t hashVal = Hash(X, Y, m_NumCells);
 
             //size_t hashVal = Hash(X, Y, 25 * 25);
 
@@ -245,7 +268,7 @@ void Fluid::UpdateAcceleration()
                 {
                     // Pressure
                     float currDensity = m_HashTable[hashVal][k]->Density;
-                    float currPressure = currDensity * m_K;
+                    float currPressure = m_K * (currDensity - m_RestDensity);
                     float r = glm::length(m_Particles[i].Pos - m_HashTable[hashVal][k]->Pos);
                     
                     if(r > 0.0f)
@@ -255,11 +278,11 @@ void Fluid::UpdateAcceleration()
                         //force += - 200.0f / (dist * dist) * dir;
 
                         //Pressure
-                        force += - 1.0f * m_Mass * ((pressure + currPressure) / (2 * currDensity)) * gradPoly6(r, m_SmoothingRadius) * 500 * dir;
+                        force += - 1.0f * 750.0f * m_Mass * ((pressure + currPressure) / (2 * currDensity)) * gradPoly6(r, m_SmoothingRadius) * dir;
                         //std::cout << - 1.0f * m_Mass * ((pressure + currPressure) / (2 * currDensity)) * gradPoly6(r, m_SmoothingRadius) << std::endl;
                         
                         // Viscosity
-                        force += m_Viscosity * m_Mass * (m_Particles[i].Vel - m_HashTable[hashVal][k]->Vel) / currDensity * lapPoly6(r, m_SmoothingRadius);
+                        force += 100 * m_Viscosity * m_Mass * (m_HashTable[hashVal][k]->Vel - m_Particles[i].Vel) / currDensity * lapViscosity(r, m_SmoothingRadius);
                     }
                 }
             }
@@ -279,8 +302,8 @@ void Fluid::CalculateDensity()
     {
         //int X0 = (int)((m_Particles[i].Pos.x - m_minBoundary.x) / m_SmoothingRadius);
         //int Y0 = (int)((m_Particles[i].Pos.y - m_minBoundary.y) / m_SmoothingRadius);
-        int X0 = floor((m_Particles[i].Pos.x - m_minBoundary.x) / m_cellSize);
-        int Y0 = floor((m_Particles[i].Pos.y - m_minBoundary.y) / m_cellSize);
+        int X0 = (m_Particles[i].Pos.x - m_minBoundary.x) / m_cellSize;
+        int Y0 = (m_Particles[i].Pos.y - m_minBoundary.y) / m_cellSize;
         float density = 0.0f;
 
         // Loop over 3x3 grid of cells around particle
@@ -290,13 +313,8 @@ void Fluid::CalculateDensity()
             int X = X0 + j % 3 - 1;
             int Y = Y0 + j / 3 - 1;
 
-            if(X < 0 || X > floor((m_maxBoundary.x - m_minBoundary.x) / m_cellSize) || Y < 0 || Y > floor((m_maxBoundary.y - m_minBoundary.y) / m_cellSize))
-            {
-                continue;
-            }
-
             // Get hash value of current cell
-            size_t hashVal = Hash(X, Y, floor((m_maxBoundary.x - m_minBoundary.x) / m_cellSize) * floor((m_maxBoundary.y - m_minBoundary.y) / m_cellSize));
+            size_t hashVal = Hash(X, Y, m_NumCells);
             
             //size_t hashVal = Hash(X, Y, 25 * 25);
 
@@ -316,16 +334,15 @@ void Fluid::CalculateDensity()
 
 void Fluid::UpdateHashTable()
 {
-    int numCells = floor((m_maxBoundary.x - m_minBoundary.x) / m_cellSize) * floor((m_maxBoundary.y - m_minBoundary.y) / m_cellSize);
+    m_NumCells = floor((m_maxBoundary.x - m_minBoundary.x) / m_cellSize) * floor((m_maxBoundary.y - m_minBoundary.y) / m_cellSize);
     //int numCells = 25 * 25;
-    
+
     m_HashTable.clear();
     for(unsigned int i = 0; i < m_NumParticles; i++)
     {
-        int X = floor((m_Particles[i].Pos.x - m_minBoundary.x) / m_cellSize);
-        int Y = floor((m_Particles[i].Pos.y - m_minBoundary.y) / m_cellSize);
-        size_t hashVal = Hash(X, Y, numCells);
+        int X = (m_Particles[i].Pos.x - m_minBoundary.x) / m_cellSize;
+        int Y = (m_Particles[i].Pos.y - m_minBoundary.y) / m_cellSize;
+        size_t hashVal = Hash(X, Y, m_NumCells);
         m_HashTable[hashVal].push_back(&m_Particles[i]);
-        m_Particles[i].HashVal = hashVal;
     }
 }

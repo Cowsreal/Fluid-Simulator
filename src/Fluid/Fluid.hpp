@@ -26,15 +26,19 @@ public:
 
     void BindCircle(Circle* circle) { m_Circle = circle; }
     void Update();
+
+    // Debug Function
     void PrintVelocities();
 
     void Setm_K(float k) { m_K = k; }
-    void Setm_cellSize(float cellSize) { m_cellSize = cellSize; }
+    void Setm_SmoothingRadius(float smoothingRadius) { m_SmoothingRadius = smoothingRadius; 
+        m_cellSize = m_cellSizeMultiplier * m_SmoothingRadius; }
     void Setm_Mass(float mass) { m_Mass = mass; }
     void Setm_Viscosity(float viscosity) { m_Viscosity = viscosity; }
     void Setm_G(float g) { m_G = g; }
     void Setm_RestDensity(float restDensity) { m_RestDensity = restDensity; }
     void Setm_WallDamping(float wallDamping) { m_WallDamping = wallDamping; }
+    void Setm_Boundary(glm::vec3 min, glm::vec3 max) { m_minBoundary = min; m_maxBoundary = max; }
 
     float* Getm_K() { return &m_K; }
     float* GetSmoothingRadius() { return &m_SmoothingRadius; }
@@ -44,24 +48,28 @@ public:
     float* Getm_RestDensity() { return &m_RestDensity; }
     float* Getm_WallDamping() { return &m_WallDamping; }
 
-
 private:
     std::vector<Particle> m_Particles;
     unsigned int m_NumParticles;
     unsigned int m_InitCols;
+    unsigned int m_NumCells;
 
     Circle* m_Circle;
 
-    glm::vec2 m_minBoundary;
-    glm::vec2 m_maxBoundary;
+    glm::vec3 m_minBoundary;
+    glm::vec3 m_maxBoundary;
 
-    float m_Dt = 1 / 60.0f;
-    float m_SmoothingRadius = 30.0f;
+    float m_Dt = 1 / 144.0f;
+    float m_SmoothingRadius = 15.0f;
     float m_Mass = 1.0f;
-    float m_K = 0.5f;
-    float m_cellSize = 0.9f * m_SmoothingRadius;
+    float m_K = 0.2f;
+    float m_cellSizeMultiplier = 1.1f;
+    float m_cellSize = m_cellSizeMultiplier * m_SmoothingRadius;
     float m_maxVelocity = 0.0f;
-    float m_Viscosity = 1.0f;
+    float m_minVelocity = 0.0f;
+    float m_maxDensity = 0.0f;
+    float m_minDensity = 0.0f;
+    float m_Viscosity = 5.0f;
     float m_G = 0.0f;
     float m_RestDensity = 0.0f;
     float m_WallDamping = 0.9f;

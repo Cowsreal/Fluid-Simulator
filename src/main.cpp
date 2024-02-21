@@ -53,6 +53,8 @@ int main()
     bool vsync = true;
     float escCooldown = 0.5f;
     double lastKeyPressTime = 0;
+
+    // boxDims[0] = xMin, boxDims[1] = xMax, boxDims[2] = yMin, boxDims[3] = yMax
     std::array<float, 4> boxDims = {-500.0f, 500.0f, -500.0f, 500.0f};
 
     GLFWwindow* window;
@@ -111,7 +113,7 @@ int main()
         // CREATE OBJECTS
 
         float nearPlaneDistance = 0.1;
-        Camera camera(45.0f, (float)windowedWidth / (float)windowedHeight, nearPlaneDistance, 50000.0f, window, true);
+        Camera camera(45.0f, (float)windowedWidth / (float)windowedHeight, nearPlaneDistance, 500.0f, window, true);
         camera.SetPosition(glm::vec3(0.0f, 0.0f, 10.0f));
         camera.SetPerspective(false);
 
@@ -134,7 +136,7 @@ int main()
         Line right(glm::vec3(boxDims[1], boxDims[2], 0), glm::vec3(boxDims[1], boxDims[3], 0));        
         std::vector<Line> boxLines = {top, bottom, left, right};
 
-        Fluid fluid(2000, 50);
+        Fluid fluid(2000, 70);
 
         Circle circle(fluid.GetParticles());
 
@@ -150,7 +152,8 @@ int main()
             /* Render here */
 
             ImGui_ImplGlfwGL3_NewFrame();
-            GLCall(glClearColor(0.529f, 0.828f, 0.952f, 1.0f));
+            //GLCall(glClearColor(0.529f, 0.828f, 0.952f, 1.0f));
+            GLCall(glClearColor(0.0f, 0.0f, 0.0f, 1.0f));
             renderer.Clear();
 
             // STATUS WINDOW
@@ -164,13 +167,18 @@ int main()
             ImGui::Text("Time: %.3fs", time);
             ImGui::End();
 
+            // SETTINGS WINDOW
+
+            ImGui::SetNextWindowPos(ImVec2(20, 120));
+            ImGui::SetNextWindowSize(ImVec2(400, 80));
             ImGui::Begin("Settings:");
-            if(ImGui::SliderFloat4("Box Sides", &boxDims[0], 0.0f, 1000.0f))
+            if(ImGui::SliderFloat4("Box Sides", &boxDims[0], -500.0f, 500.0f))
             {
                 left.UpdateVertices(glm::vec3(boxDims[0], boxDims[2], 0), glm::vec3(boxDims[0], boxDims[3], 0));
                 right.UpdateVertices(glm::vec3(boxDims[1], boxDims[2], 0), glm::vec3(boxDims[1], boxDims[3], 0));
                 top.UpdateVertices(glm::vec3(boxDims[0], boxDims[3], 0), glm::vec3(boxDims[1], boxDims[3], 0));
                 bottom.UpdateVertices(glm::vec3(boxDims[0], boxDims[2], 0), glm::vec3(boxDims[1], boxDims[2], 0));
+                fluid.Setm_Boundary(glm::vec3(boxDims[0], boxDims[2], 0), glm::vec3(boxDims[1], boxDims[3], 0));
             }
             if(ImGui::Button("Print Velocities"))
             {
@@ -178,12 +186,16 @@ int main()
             }
             ImGui::End();
 
+            // FLUID SETTINGS WINDOW
+
+            ImGui::SetNextWindowPos(ImVec2(20, 220));
+            ImGui::SetNextWindowSize(ImVec2(400, 220));
             ImGui::Begin("Fluid Settings:");
             if(ImGui::SliderFloat("Smoothing Radius", fluid.GetSmoothingRadius(), 0.0f, 100.0f))
             {
-                fluid.Setm_cellSize(0.9f * *fluid.GetSmoothingRadius());
+                fluid.Setm_SmoothingRadius(*fluid.GetSmoothingRadius());
             }
-            if(ImGui::SliderFloat("Mass", fluid.GetMass(), 0.0f, 15.0f))
+            if(ImGui::SliderFloat("Mass", fluid.GetMass(), 0.1f, 15.0f))
             {
                 fluid.Setm_Mass(*fluid.GetMass());
             }
@@ -191,11 +203,11 @@ int main()
             {
                 fluid.Setm_K(*fluid.Getm_K());
             }
-            if(ImGui::SliderFloat("Viscosity", fluid.Getm_Viscosity(), 0.0f, 15.0f))
+            if(ImGui::SliderFloat("Viscosity", fluid.Getm_Viscosity(), 0.0f, 25.0f))
             {
                 fluid.Setm_Viscosity(*fluid.Getm_Viscosity());
             }
-            if(ImGui::SliderFloat("G", fluid.Getm_G(), 0.0f, 500.0f))
+            if(ImGui::SliderFloat("Gravity", fluid.Getm_G(), 0.0f, 5000.0f))
             {
                 fluid.Setm_G(*fluid.Getm_G());
             }
@@ -208,21 +220,7 @@ int main()
                 fluid.Setm_WallDamping(*fluid.Getm_WallDamping());
             }
             ImGui::End();
-            
 
-            if(drawCoordinateAxis)
-            {
-                //Coordinate axis
-                shader.Bind();
-                glm::mat4 model = glm::mat4(1.0f); //create a model matrix
-                glm::mat4 mvp = projectionMatrix * viewMatrix * model;
-                shader.SetUniformMat4f("u_MVP", mvp); //set the uniform
-                shader.SetUniform4f("u_Color", 1.0f, 1.0f, 1.0f, 1.0f); //set the uniform
-                glLineWidth(3.0f);
-                axis.Draw();
-            }
-
-            
             for(int i = 0; i < boxLines.size(); i++)
             {
                 shader.Bind();
@@ -234,7 +232,6 @@ int main()
                 boxLines[i].Draw();
             }
             fluid.Update();
-
             {
                 shader3.Bind();
                 glm::mat4 model = glm::mat4(1.0f); //create a model matrix
@@ -243,7 +240,6 @@ int main()
                 circle.Draw();
             }
 
-            
             // CAMERA CONTROLS
             camera.SetFOV(fov);
             camera.SetSpeed(speed);
